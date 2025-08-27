@@ -1,0 +1,32 @@
+{
+    "configurations": [
+        {
+            "name": "GCC-Ninja",
+            "generator": "Ninja",
+            "configurationType": "Debug",
+            "buildRoot": "$RaspberryPi2/build",
+            "installRoot": "$RaspberryPi2/install",
+            "cmakeExecutable": "cmake",
+            "cmakeCommandArgs": "-DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DCMAKE_MAKE_PROGRAM=mingw32-make",
+            "buildCommandArgs": "",
+            "ctestCommandArgs": "",
+            "variables": [
+                {
+                    "name": "CMAKE_C_COMPILER",
+                    "value": "gcc",
+                    "type": "STRING"
+                },
+                {
+                    "name": "CMAKE_CXX_COMPILER",
+                    "value": "g++",
+                    "type": "STRING"
+                },
+                {
+                    "name": "CMAKE_MAKE_PROGRAM",
+                    "value": "mingw32-make",
+                    "type": "STRING"
+                }
+            ]
+        }
+    ]
+}
