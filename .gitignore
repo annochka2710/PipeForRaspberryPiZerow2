@@ -1,0 +1,4 @@
+out/
+build/
+cmakegitbash.sh
+test.py
