@@ -1,34 +1,37 @@
 #pragma once
 
-#include <vector>
 #include <string>
+#include <vector>
 
-class BitArray{
-    public:
-        BitArray(int sizeInBits_);
-        ~BitArray() = default;
-        
-        void begin(const int sizeBits); //инициализация массива размером sizeBits
+class BitArray {
+public:
+	BitArray(int sizeInBits_);
+	~BitArray() = default;
 
-        void setBit(int index, bool value); //установка значений из другого массива
-        bool getBit(int index); //копирование значений в другой массив
+	void begin(const int sizeBits); // инициализация массива размером sizeBits
 
-        int sizeInBits() const;
-        int sizeInBytes() const;
+	void setBit(int index, bool value); // установка значения бита (в 1 или 0)
+	bool getBit(int index); // получение значения бита
 
-        bool isEmpty() const;
+	int sizeInBits() const;
+	int sizeInBytes() const;
 
-        std::vector<uint8_t> toBytes() const;
+	bool isEmpty() const;
 
-        void setFromBytes(const std::vector<uint8_t>& bytes);
+	std::vector<uint8_t> toBytes() const;
 
-        bool loadFromFile(const std::string& filename); //загрузка из файла
-        bool saveToFile(const std::string& filename) const; //сохранение в файл
+	void setFromBytes(const std::vector<uint8_t>& bytes);
 
-    bool operator[](int index) { return getBit(index); } //оператор доступа
-    
-    
-    private:
-        int sizeBits_; //размер массива в битах 
-        std::vector<uint8_t> array_; //массив байтов
+	// bool loadFromFile(const std::string& filename); //чтение из файла
+	// bool saveToFile(const std::string& filename) const; //запись в файл
+
+	std::vector<uint8_t> toBoolVector();
+
+	bool operator[](int index) { return getBit(index); } // оператор доступа
+
+private:
+	int sizeBits_;                // размер массива в битах
+	std::vector<uint8_t> array_;  // массив байтов
+	// std::fstream file_;
+	std::string filename_;
 };

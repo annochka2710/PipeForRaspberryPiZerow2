@@ -1,15 +1,20 @@
 #pragma once
 
-#include <array>
 #include <fstream>
 #include <mutex>
 #include <thread>
+#include "BitArray.hpp"
+#include <stdio.h>
+#include <concepts>
 
 namespace Pipe {
     /// Интерфейс передачи данных
     class IPipe {
     protected:
-        std::array<bool, 2048> buf;
+        //std::array<bool, 2048> buf;
+        BitArray buffer_;
+        std::vector<uint8_t> bufferBytes_; //храним байты
+        size_t bufferSize_;
         bool readyRead = false;
         bool readyWrite = true;
         std::mutex buffMutex;
@@ -22,22 +27,30 @@ namespace Pipe {
             OUT /// PIPE Выдает данные пользователю (read)
         };
 
-        IPipe(Direction dir);
+        IPipe(Direction dir, size_t bufferSize = 2048);
 
         ~IPipe();
 
         bool isReadyRead() const;
         bool isReadyWrite() const;
 
-        bool writeBuff2048(const bool *bits);
+        bool writeBuff2048(const bool* bits);
 
-        bool readBuff2048(bool *bits);
+        bool readBuff2048(bool* bits);
 
-        static void run(IPipe *pipe);
+        static void run(IPipe* pipe);
+
+        void setBufferSize(size_t newSize);
+
+        size_t getBufferSize() const;
 
     protected:
         virtual void process() = 0;
         Direction dir_;
+
+    private:
+        bool writeBuff2048(const bool* bits, size_t sizeBuff);
+        bool readBuff2048(bool* bits, size_t size);
     };
 
     /// Тоннель передачи данных
@@ -47,17 +60,26 @@ namespace Pipe {
         InPipe out;
 
     public:
+        Tonnel(size_t bufferSize = 2048) : in(IPipe::OUT, bufferSize), out(IPipe::IN, bufferSize) {}
+
+        void setBufferSize(int newSize) {
+            in.setBufferSize(newSize);
+            out.setBufferSize(newSize);
+        }
+
     };
 
     /// Простая реализация интерфейса передачи данных
     class EasyPipe : public IPipe {
-        std::fstream file;
-        std::string filename;
+        std::fstream file_;
+        std::string fileName_;
 
+        std::streamsize getFileSize(const std::string& fileName_);
     public:
-        EasyPipe(Direction dir, const std::string& filename = "story.txt");
+        EasyPipe(Direction dir, const std::string& filename = "pipe.bin", int bufferSize = 2048);
         ~EasyPipe();
         void process() override;
+
     };
 
     /// Интерфейс передачи данных через лазерный модуль
