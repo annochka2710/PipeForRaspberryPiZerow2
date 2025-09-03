@@ -1,16 +1,16 @@
 {
-  "cmake.buildBeforeRun": true,
-  "cmake.cleanBeforeBuild": true,
-  "cmake.configureArgs": [
-    "-DCMAKE_BUILD_TYPE=Debug",
-    "--fresh",
-    "-DCMAKE_CXX_FLAGS=/Zi /Od /DEBUG:FULL"
-  ],
-  "cmake.buildArgs": [
-    "--config", "Debug",
-    "--clean-first",
-    "--verbose"
-  ],
-  "C_Cpp.debugShortcut": false,
-  "C_Cpp.autocomplete": "disabled"
+    "terminal.integrated.defaultProfile.windows": "Command Prompt",
+    "terminal.integrated.profiles.windows": {
+        "Command Prompt": {
+            "path": "cmd.exe",
+            "args": ["/k", "chcp 1251"]
+        },
+        "PowerShell": {
+            "path": "powershell.exe",
+            "args": ["-NoExit", "-Command", "chcp 1251"]
+        }
+    },
+    "cmake.configureArgs": [
+        "-DCMAKE_CXX_FLAGS=/utf-8"
+    ]
 }

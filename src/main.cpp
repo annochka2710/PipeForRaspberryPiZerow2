@@ -3,79 +3,92 @@
 #include "BitArray.hpp"
 #include "Pipe.hpp"
 #include <iostream>
-#include <experimental/filesystem>
-namespace fs = std::experimental::filesystem;
+#include <filesystem>
 
-#define RED "\033[31m"
+const int oneBlockSize = 2048;
 
-int main()
-{
-    BitArray testIn(2048); //Исходные данные для записи (2048 бит)
-    BitArray testOut(2048); //поток на чтение
-    //fs::path dataDir = fs::current_path() / "data";
-    //fs::create_directories(dataDir); // создаем папку если не существует
+int main() {
+  const std::string filename = "resources/story.txt";
+  if (!std::filesystem::exists(filename)) {
+    std::cout << "[MAIN] No file " << filename << " in dir "
+              << std::filesystem::current_path() << std::endl;
+    return 1;
+  }
 
-    std::ofstream outfile;
-    outfile.open("pipe.bin", std::ios_base::out);
-    if (outfile.is_open()) {
-        std::cout << "[MAIN] File was created\n";
-        outfile.close();
-    }
-    else {
-        std::cerr << "[MAIN] File was NOT created\n";
-        return 0;
-    }
+  std::filesystem::create_directory("output");
+  const std::string outfilename = "output/story_processed.txt";
 
-    //заполнение случайными битами
-    for (int i = 0; i < 2048; i++) {
-        bool randomBit = ((double)rand() / RAND_MAX) > 0.5;
-        testIn.setBit(i, randomBit);
-    }
+  // загружаем данные из файла
+  BitArray buf;
+  if (!buf.loadFromFile(filename)) {
+    std::cout << "[MAIN] Failed to load a file\n";
+    return 1;
+  }
+  std::cout << "[MAIN] Load success. File size " << buf.sizeInBytes() << "\n";
+  
+  Pipe::EasyPipe out(Pipe::IPipe::OUT); // канал для чтения (создаем файл здесь)
+  Pipe::EasyPipe in(Pipe::IPipe::IN);   // канал для записи
+  std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 
-    Pipe::EasyPipe in(Pipe::IPipe::IN); //канал для записи
-    Pipe::EasyPipe out(Pipe::IPipe::OUT); //канал для чтения
+  int totalBits = buf.sizeInBits();
+  BitArray output(totalBits);
+  int processedBits = 0;
 
-    //конвертация BitArray в буловый массив для записи
-    auto vec = testIn.toBoolVector();
+  while (totalBits > processedBits) {
+    //определение минимального размера блока
+    int blockSize = std::min(oneBlockSize, totalBits - processedBits);
 
-    //in.writeBuff2048(test.data()); //записываем 2048 бит в канал
-    in.writeBuff2048(reinterpret_cast<const bool*>(vec.data()));
+    //создание BitArray для блока
+    BitArray blockBits(blockSize);
+    for (int i = 0; i < blockSize; i++) 
+      blockBits.setBit(i, buf.getBit(processedBits + i));
 
-    while (true) {
-        std::vector<uint8_t> temp(2048);
-        if (out.readBuff2048(reinterpret_cast<bool*>(temp.data()))) {
-            for (int i = 0; i < 2048; i++)
-                testOut.setBit(i, temp[i] != 0);
-            break;
-        }
-    }
-
-    std::cout << RED << "Original:" << "\033[0m" << std::endl;
-    for (int i = 0; i < 2048; i++) {
-        std::cout << (testIn.getBit(i) ? "1" : "0");
-        if ((i + 1) % 8 == 0) std::cout << " "; // разделяем байты
-        if ((i + 1) % 64 == 0) std::cout << std::endl; // новая строка каждые 8 байт
-    }
-    std::cout << std::endl << std::endl;
-
-    std::cout << RED << "Received:" << "\033[0m" << std::endl;
-    for (int i = 0; i < 2048; i++) {
-        std::cout << (testOut.getBit(i) ? "1" : "0");
-        if ((i + 1) % 8 == 0) std::cout << " ";
-        if ((i + 1) % 64 == 0) std::cout << std::endl;
-    }
-    std::cout << std::endl;
-
-    // Проверка на идентичность
-    bool identical = true;
-    for (int i = 0; i < 2048; i++) {
-        if (testIn.getBit(i) != testOut.getBit(i)) {
-            identical = false;
-            break;
-        }
+    //записываем в пайп по блокам
+    if (!in.writeBitArrayBlock(blockBits)) {
+      std::cout << "[MAIN] Failed to write block to pipe\n";
+      return 1;
     }
 
-    std::cout << "Data is " << (identical ? "IDENTICAL" : "DIFFERENT") << std::endl;
+    //читаем из пайпа блоками
+    BitArray processedBlock;
+    if (!out.readBitArrayBlock(processedBlock, blockSize)) {
+      std::cout << "[MAIN] Failed to read block from pipe\n";
+      return 1;
+    }
 
-    return 0;
+    //копирование результата
+    for (int i = 0; i < blockSize; i++)
+      output.setBit(processedBits + i, processedBlock.getBit(i));
+
+    processedBits += blockSize;
+    std::cout << "Processed " << processedBits << " of " << totalBits << " totalBits\n";
+  }
+
+  // сохранение данных в файл
+  if (output.saveToFile(outfilename)) {
+    std::cout << "Input file " << filename << " sizeBytes " << buf.sizeInBits()
+              << "\n";
+    std::cout << "Output file " << outfilename << " sizeBytes "
+              << output.sizeInBits() << "\n";
+    bool equal = BitArray::checkEqualFiles(buf, output);
+    std::cout << "Data is " << (equal ? "EQUAL\n" : "DIFFERENT\n");
+  }
+
+  std::cout << "First 64 bits\n";
+  std::cout << "Original\n";
+  for (int i = 0; i < 64; i++) {
+    std::cout << (buf.getBit(i) ? "1" : "0");
+    if ((i + 1) % 8 == 0)
+      std::cout << " ";
+  }
+  std::cout << std::endl;
+
+  std::cout << "Final\n";
+  for (int i = 0; i < 64; i++) {
+    std::cout << (output.getBit(i) ? "1" : "0");
+    if ((i + 1) % 8 == 0)
+      std::cout << " ";
+  }
+  std::cout << std::endl;
+  return 0;
 }

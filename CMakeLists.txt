@@ -23,6 +23,9 @@ elseif(MSVC)
     add_compile_options(/wd4996)  # Отключает предупреждения о deprecated функциях
 endif()
 
+# Копируем ресурсы в папку сборки ← ДОБАВЬТЕ ЭТУ СТРОКУ
+file(COPY ${CMAKE_SOURCE_DIR}/resources DESTINATION ${CMAKE_BINARY_DIR})
+
 # Собираем список исходных файлов - правильные пути
 file(GLOB MY_SOURCES 
     "${CMAKE_SOURCE_DIR}/src/*.cpp"
@@ -41,4 +44,13 @@ endif()
 # Для Linux
 if(UNIX AND NOT APPLE)
     target_link_libraries(RaspberryPi2 pthread)
+endif()
+
+# Для работы с файловой системой C++17
+#target_link_libraries(RaspberryPi2 stdc++fs)
+
+if(MSVC)
+    add_compile_options(/utf-8)
+    add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /utf-8")
 endif()

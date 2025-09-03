@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <fstream>
 #include <mutex>
 #include <thread>
@@ -11,7 +12,6 @@ namespace Pipe {
     /// Интерфейс передачи данных
     class IPipe {
     protected:
-        //std::array<bool, 2048> buf;
         BitArray buffer_;
         std::vector<uint8_t> bufferBytes_; //храним байты
         size_t bufferSize_;
@@ -34,14 +34,18 @@ namespace Pipe {
         bool isReadyRead() const;
         bool isReadyWrite() const;
 
-        bool writeBuff2048(const bool* bits);
+        bool writeBuff2048(const bool* bit);
+        bool readBuff2048(bool* bit);
 
-        bool readBuff2048(bool* bits);
+        bool writeBlock(const std::vector<bool>& block);
+        bool readBlock(std::vector<bool>& block, int size);
+
+        bool writeBitArrayBlock(const BitArray& block);    
+        bool readBitArrayBlock(BitArray& block, int expectedSize);
 
         static void run(IPipe* pipe);
 
         void setBufferSize(size_t newSize);
-
         size_t getBufferSize() const;
 
     protected:
@@ -49,8 +53,8 @@ namespace Pipe {
         Direction dir_;
 
     private:
-        bool writeBuff2048(const bool* bits, size_t sizeBuff);
-        bool readBuff2048(bool* bits, size_t size);
+        bool writeBuff2048(const bool* bit, size_t sizeBuff);
+        bool readBuff2048(bool* bit, size_t size);
     };
 
     /// Тоннель передачи данных
@@ -61,12 +65,10 @@ namespace Pipe {
 
     public:
         Tonnel(size_t bufferSize = 2048) : in(IPipe::OUT, bufferSize), out(IPipe::IN, bufferSize) {}
-
         void setBufferSize(int newSize) {
             in.setBufferSize(newSize);
             out.setBufferSize(newSize);
         }
-
     };
 
     /// Простая реализация интерфейса передачи данных
